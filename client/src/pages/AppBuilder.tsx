@@ -7,9 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
   LayoutTemplate,
   Navigation,
@@ -24,7 +27,10 @@ import {
   Plus,
   Trash2,
   ShoppingCart,
-  Check
+  Check,
+  Code2,
+  Copy,
+  Eye
 } from "lucide-react";
 import type { ComponentType, InsertAppProject } from "@shared/schema";
 import { componentPricing, BASE_APP_PRICE } from "@shared/schema";
@@ -55,11 +61,151 @@ const componentDescriptions: Record<ComponentType, string> = {
   "cta-section": "Call-to-action section with button"
 };
 
+const generateComponentHTML = (component: ComponentType): string => {
+  const templates: Record<ComponentType, string> = {
+    "hero": `<!-- Hero Section -->
+<section class="hero-section">
+  <div class="container">
+    <h1>Welcome to Your Amazing Website</h1>
+    <p>Create something extraordinary with our platform</p>
+    <button class="cta-button">Get Started</button>
+  </div>
+</section>`,
+    "header": `<!-- Header Navigation -->
+<header class="main-header">
+  <nav class="navbar">
+    <div class="logo">Your Brand</div>
+    <ul class="nav-menu">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+</header>`,
+    "contact-form": `<!-- Contact Form -->
+<section class="contact-form-section">
+  <form class="contact-form">
+    <input type="text" placeholder="Your Name" required>
+    <input type="email" placeholder="Your Email" required>
+    <textarea placeholder="Your Message" rows="5" required></textarea>
+    <button type="submit">Send Message</button>
+  </form>
+</section>`,
+    "about-section": `<!-- About Section -->
+<section class="about-section">
+  <div class="container">
+    <h2>About Us</h2>
+    <p>We are passionate about delivering exceptional experiences...</p>
+  </div>
+</section>`,
+    "image-gallery": `<!-- Image Gallery -->
+<section class="gallery-section">
+  <div class="gallery-grid">
+    <div class="gallery-item"><img src="image1.jpg" alt="Gallery 1"></div>
+    <div class="gallery-item"><img src="image2.jpg" alt="Gallery 2"></div>
+    <div class="gallery-item"><img src="image3.jpg" alt="Gallery 3"></div>
+  </div>
+</section>`,
+    "footer": `<!-- Footer -->
+<footer class="main-footer">
+  <div class="container">
+    <p>&copy; 2025 Your Company. All rights reserved.</p>
+    <ul class="footer-links">
+      <li><a href="#privacy">Privacy Policy</a></li>
+      <li><a href="#terms">Terms of Service</a></li>
+    </ul>
+  </div>
+</footer>`,
+    "feature-grid": `<!-- Feature Grid -->
+<section class="features-section">
+  <div class="feature-grid">
+    <div class="feature-item">
+      <h3>Feature One</h3>
+      <p>Amazing capability that sets you apart</p>
+    </div>
+    <div class="feature-item">
+      <h3>Feature Two</h3>
+      <p>Another incredible feature</p>
+    </div>
+  </div>
+</section>`,
+    "testimonials": `<!-- Testimonials -->
+<section class="testimonials-section">
+  <div class="testimonial-card">
+    <p>"This is an amazing service!"</p>
+    <span class="author">- Happy Customer</span>
+  </div>
+</section>`,
+    "pricing-table": `<!-- Pricing Table -->
+<section class="pricing-section">
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <h3>Basic</h3>
+      <div class="price">$9.99/mo</div>
+      <button>Choose Plan</button>
+    </div>
+  </div>
+</section>`,
+    "cta-section": `<!-- Call to Action -->
+<section class="cta-section">
+  <h2>Ready to Get Started?</h2>
+  <button class="cta-button">Start Now</button>
+</section>`
+  };
+  return templates[component];
+};
+
+const generateCSS = (): string => {
+  return `/* Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+  color: #333;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 15px;
+  }
+}`;
+};
+
+const generateJS = (): string => {
+  return `// Initialize app
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('App initialized');
+  
+  // Form validation
+  const forms = document.querySelectorAll('form');
+  forms.forEach(form => {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      alert('Form submitted!');
+    });
+  });
+});`;
+};
+
 export default function AppBuilder() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [projectName, setProjectName] = useState("");
   const [selectedComponents, setSelectedComponents] = useState<ComponentType[]>([]);
+  const [previewTab, setPreviewTab] = useState<"visual" | "code">("visual");
 
   const totalPrice = BASE_APP_PRICE + selectedComponents.reduce((sum, comp) => sum + componentPricing[comp], 0);
 
@@ -81,6 +227,18 @@ export default function AppBuilder() {
       description: `${removed.replace(/-/g, ' ')} removed from your app`,
     });
   };
+
+  const copyToClipboard = (code: string, type: string) => {
+    navigator.clipboard.writeText(code);
+    toast({
+      title: "Copied!",
+      description: `${type} code copied to clipboard`,
+    });
+  };
+
+  const fullHTML = selectedComponents.map(generateComponentHTML).join('\n\n');
+  const fullCSS = generateCSS();
+  const fullJS = generateJS();
 
   const createProjectMutation = useMutation({
     mutationFn: async (data: InsertAppProject) => {
@@ -198,10 +356,14 @@ export default function AppBuilder() {
           <div className="lg:col-span-5">
             <Card>
               <CardHeader>
-                <CardTitle>Your App Preview</CardTitle>
-                <CardDescription>
-                  Components you've selected will appear here
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Your App Preview</CardTitle>
+                    <CardDescription>
+                      Components you've selected will appear here
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 mb-4">
@@ -215,52 +377,165 @@ export default function AppBuilder() {
                   />
                 </div>
                 <Separator className="my-4" />
-                <ScrollArea className="h-[500px] pr-4">
-                  {selectedComponents.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full py-12 text-center">
-                      <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
-                        <LayoutTemplate className="h-10 w-10 text-muted-foreground" />
-                      </div>
-                      <h3 className="font-semibold text-lg mb-2">No Components Yet</h3>
-                      <p className="text-sm text-muted-foreground max-w-xs">
-                        Start building by selecting components from the left panel
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {selectedComponents.map((component, index) => {
-                        const Icon = componentIcons[component];
-                        return (
-                          <Card key={`${component}-${index}`} className="bg-muted/50" data-testid={`preview-component-${index}`}>
-                            <CardContent className="p-4">
-                              <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                  <Icon className="h-4 w-4 text-primary" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm capitalize">
-                                    {component.replace(/-/g, ' ')}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground font-mono">
-                                    ${componentPricing[component]}
-                                  </p>
-                                </div>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => removeComponent(index)}
-                                  data-testid={`button-remove-${index}`}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  )}
-                </ScrollArea>
+                <Tabs value={previewTab} onValueChange={(v) => setPreviewTab(v as "visual" | "code")}>
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="visual" data-testid="tab-visual-preview">
+                      <Eye className="h-4 w-4 mr-2" />
+                      Visual Preview
+                    </TabsTrigger>
+                    <TabsTrigger value="code" data-testid="tab-code-preview">
+                      <Code2 className="h-4 w-4 mr-2" />
+                      Code Preview
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="visual">
+                    <ScrollArea className="h-[500px] pr-4">
+                      {selectedComponents.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+                          <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
+                            <LayoutTemplate className="h-10 w-10 text-muted-foreground" />
+                          </div>
+                          <h3 className="font-semibold text-lg mb-2">No Components Yet</h3>
+                          <p className="text-sm text-muted-foreground max-w-xs">
+                            Start building by selecting components from the left panel
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {selectedComponents.map((component, index) => {
+                            const Icon = componentIcons[component];
+                            return (
+                              <Card key={`${component}-${index}`} className="bg-muted/50" data-testid={`preview-component-${index}`}>
+                                <CardContent className="p-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                      <Icon className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-sm capitalize">
+                                        {component.replace(/-/g, ' ')}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground font-mono">
+                                        ${componentPricing[component]}
+                                      </p>
+                                    </div>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => removeComponent(index)}
+                                      data-testid={`button-remove-${index}`}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </TabsContent>
+                  <TabsContent value="code">
+                    <ScrollArea className="h-[500px]">
+                      {selectedComponents.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+                          <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
+                            <Code2 className="h-10 w-10 text-muted-foreground" />
+                          </div>
+                          <h3 className="font-semibold text-lg mb-2">No Code Yet</h3>
+                          <p className="text-sm text-muted-foreground max-w-xs">
+                            Add components to see generated code
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4 pr-4">
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <Badge variant="secondary" className="font-mono">HTML</Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => copyToClipboard(fullHTML, "HTML")}
+                                data-testid="button-copy-html"
+                              >
+                                <Copy className="h-3 w-3 mr-1" />
+                                Copy
+                              </Button>
+                            </div>
+                            <div className="rounded-md overflow-hidden" data-testid="code-html">
+                              <SyntaxHighlighter
+                                language="html"
+                                style={vscDarkPlus}
+                                customStyle={{
+                                  margin: 0,
+                                  fontSize: '0.75rem',
+                                  borderRadius: '0.375rem'
+                                }}
+                              >
+                                {fullHTML || '<!-- Your components will appear here -->'}
+                              </SyntaxHighlighter>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <Badge variant="secondary" className="font-mono">CSS</Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => copyToClipboard(fullCSS, "CSS")}
+                                data-testid="button-copy-css"
+                              >
+                                <Copy className="h-3 w-3 mr-1" />
+                                Copy
+                              </Button>
+                            </div>
+                            <div className="rounded-md overflow-hidden" data-testid="code-css">
+                              <SyntaxHighlighter
+                                language="css"
+                                style={vscDarkPlus}
+                                customStyle={{
+                                  margin: 0,
+                                  fontSize: '0.75rem',
+                                  borderRadius: '0.375rem'
+                                }}
+                              >
+                                {fullCSS}
+                              </SyntaxHighlighter>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <Badge variant="secondary" className="font-mono">JavaScript</Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => copyToClipboard(fullJS, "JavaScript")}
+                                data-testid="button-copy-js"
+                              >
+                                <Copy className="h-3 w-3 mr-1" />
+                                Copy
+                              </Button>
+                            </div>
+                            <div className="rounded-md overflow-hidden" data-testid="code-js">
+                              <SyntaxHighlighter
+                                language="javascript"
+                                style={vscDarkPlus}
+                                customStyle={{
+                                  margin: 0,
+                                  fontSize: '0.75rem',
+                                  borderRadius: '0.375rem'
+                                }}
+                              >
+                                {fullJS}
+                              </SyntaxHighlighter>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </div>
