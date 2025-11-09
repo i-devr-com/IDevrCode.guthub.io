@@ -19,17 +19,31 @@ export const componentTypeEnum = z.enum([
 
 export type ComponentType = z.infer<typeof componentTypeEnum>;
 
+// Component Tier Configuration
+export const componentTiers: Record<ComponentType, "basic" | "premium"> = {
+  "hero": "basic",
+  "header": "basic",
+  "contact-form": "premium",
+  "about-section": "basic",
+  "image-gallery": "premium",
+  "footer": "basic",
+  "feature-grid": "basic",
+  "testimonials": "premium",
+  "pricing-table": "premium",
+  "cta-section": "basic"
+};
+
 // Component Pricing Configuration
 export const componentPricing: Record<ComponentType, number> = {
   "hero": 29,
   "header": 19,
-  "contact-form": 39,
+  "contact-form": 49,
   "about-section": 24,
-  "image-gallery": 34,
+  "image-gallery": 44,
   "footer": 19,
   "feature-grid": 29,
-  "testimonials": 29,
-  "pricing-table": 44,
+  "testimonials": 39,
+  "pricing-table": 54,
   "cta-section": 24
 };
 

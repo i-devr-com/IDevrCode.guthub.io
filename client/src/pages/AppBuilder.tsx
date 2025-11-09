@@ -30,10 +30,11 @@ import {
   Check,
   Code2,
   Copy,
-  Eye
+  Eye,
+  Sparkles
 } from "lucide-react";
 import type { ComponentType, InsertAppProject } from "@shared/schema";
-import { componentPricing, BASE_APP_PRICE } from "@shared/schema";
+import { componentPricing, componentTiers, BASE_APP_PRICE } from "@shared/schema";
 
 const componentIcons: Record<ComponentType, any> = {
   "hero": LayoutTemplate,
@@ -315,24 +316,38 @@ export default function AppBuilder() {
                     {availableComponents.map((component) => {
                       const Icon = componentIcons[component];
                       const price = componentPricing[component];
+                      const tier = componentTiers[component];
+                      const isPremium = tier === "premium";
                       return (
                         <Card
                           key={component}
-                          className="hover-elevate active-elevate-2 cursor-pointer transition-all"
+                          className={`hover-elevate active-elevate-2 cursor-pointer transition-all ${
+                            isPremium ? "border-primary/50 bg-primary/5" : ""
+                          }`}
                           onClick={() => addComponent(component)}
                           data-testid={`card-component-${component}`}
                         >
                           <CardContent className="p-4">
                             <div className="flex items-start gap-3">
-                              <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                <Icon className="h-5 w-5 text-primary" />
+                              <div className={`h-10 w-10 rounded-md flex items-center justify-center flex-shrink-0 ${
+                                isPremium ? "bg-primary/20" : "bg-primary/10"
+                              }`}>
+                                <Icon className={`h-5 w-5 ${isPremium ? "text-primary" : "text-primary"}`} />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2 mb-1">
-                                  <h3 className="font-semibold text-sm capitalize">
-                                    {component.replace(/-/g, ' ')}
-                                  </h3>
-                                  <Badge variant="secondary" className="flex-shrink-0">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="font-semibold text-sm capitalize">
+                                      {component.replace(/-/g, ' ')}
+                                    </h3>
+                                    {isPremium && (
+                                      <Badge variant="default" className="text-xs gap-1 px-1.5 py-0" data-testid={`badge-premium-${component}`}>
+                                        <Sparkles className="h-3 w-3" />
+                                        Premium
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <Badge variant={isPremium ? "default" : "secondary"} className="flex-shrink-0">
                                     ${price}
                                   </Badge>
                                 </div>
