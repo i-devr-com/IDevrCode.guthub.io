@@ -1,4 +1,8 @@
 import {
+  appProjects,
+  customQuotes,
+  repairQuotes,
+  adminSettings,
   type AppProject,
   type InsertAppProject,
   type CustomQuote,
@@ -8,7 +12,8 @@ import {
   type AdminSetting,
   type InsertAdminSetting
 } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // App Builder Projects
@@ -35,149 +40,149 @@ export interface IStorage {
   getAllSettings(): Promise<AdminSetting[]>;
 }
 
-export class MemStorage implements IStorage {
-  private appProjects: Map<string, AppProject>;
-  private customQuotes: Map<string, CustomQuote>;
-  private repairQuotes: Map<string, RepairQuote>;
-  private adminSettings: Map<string, AdminSetting>;
-
-  constructor() {
-    this.appProjects = new Map();
-    this.customQuotes = new Map();
-    this.repairQuotes = new Map();
-    this.adminSettings = new Map();
-  }
-
+export class DatabaseStorage implements IStorage {
   // App Builder Projects
   async createAppProject(insertProject: InsertAppProject): Promise<AppProject> {
-    const id = randomUUID();
-    const project: AppProject = {
-      ...insertProject,
-      id,
-      createdAt: new Date(),
-      stripePaymentIntentId: null,
-    };
-    this.appProjects.set(id, project);
+    const [project] = await db
+      .insert(appProjects)
+      .values(insertProject)
+      .returning();
     return project;
   }
 
   async getAppProject(id: string): Promise<AppProject | undefined> {
-    return this.appProjects.get(id);
+    const [project] = await db
+      .select()
+      .from(appProjects)
+      .where(eq(appProjects.id, id));
+    return project || undefined;
   }
 
   async updateAppProjectPayment(id: string, stripePaymentIntentId: string): Promise<AppProject> {
-    const project = this.appProjects.get(id);
-    if (!project) {
+    const [updated] = await db
+      .update(appProjects)
+      .set({
+        isPaid: "true",
+        stripePaymentIntentId,
+      })
+      .where(eq(appProjects.id, id))
+      .returning();
+    
+    if (!updated) {
       throw new Error("Project not found");
     }
-    const updated: AppProject = {
-      ...project,
-      isPaid: "true",
-      stripePaymentIntentId,
-    };
-    this.appProjects.set(id, updated);
     return updated;
   }
 
   async getAllAppProjects(): Promise<AppProject[]> {
-    return Array.from(this.appProjects.values());
+    return await db.select().from(appProjects);
   }
 
   // Custom Coding Quotes
   async createCustomQuote(insertQuote: InsertCustomQuote): Promise<CustomQuote> {
-    const id = randomUUID();
-    const quote: CustomQuote = {
-      ...insertQuote,
-      id,
-      status: "pending",
-      createdAt: new Date(),
-    };
-    this.customQuotes.set(id, quote);
+    const [quote] = await db
+      .insert(customQuotes)
+      .values(insertQuote)
+      .returning();
     return quote;
   }
 
   async getCustomQuote(id: string): Promise<CustomQuote | undefined> {
-    return this.customQuotes.get(id);
+    const [quote] = await db
+      .select()
+      .from(customQuotes)
+      .where(eq(customQuotes.id, id));
+    return quote || undefined;
   }
 
   async getAllCustomQuotes(): Promise<CustomQuote[]> {
-    return Array.from(this.customQuotes.values());
+    return await db.select().from(customQuotes);
   }
 
   async updateCustomQuoteStatus(id: string, status: string): Promise<CustomQuote> {
-    const quote = this.customQuotes.get(id);
-    if (!quote) {
+    const [updated] = await db
+      .update(customQuotes)
+      .set({ status })
+      .where(eq(customQuotes.id, id))
+      .returning();
+    
+    if (!updated) {
       throw new Error("Quote not found");
     }
-    const updated: CustomQuote = { ...quote, status };
-    this.customQuotes.set(id, updated);
     return updated;
   }
 
   // Repair Service Quotes
   async createRepairQuote(insertQuote: InsertRepairQuote): Promise<RepairQuote> {
-    const id = randomUUID();
-    const quote: RepairQuote = {
-      ...insertQuote,
-      id,
-      status: "pending",
-      createdAt: new Date(),
-    };
-    this.repairQuotes.set(id, quote);
+    const [quote] = await db
+      .insert(repairQuotes)
+      .values(insertQuote)
+      .returning();
     return quote;
   }
 
   async getRepairQuote(id: string): Promise<RepairQuote | undefined> {
-    return this.repairQuotes.get(id);
+    const [quote] = await db
+      .select()
+      .from(repairQuotes)
+      .where(eq(repairQuotes.id, id));
+    return quote || undefined;
   }
 
   async getAllRepairQuotes(): Promise<RepairQuote[]> {
-    return Array.from(this.repairQuotes.values());
+    return await db.select().from(repairQuotes);
   }
 
   async updateRepairQuoteStatus(id: string, status: string): Promise<RepairQuote> {
-    const quote = this.repairQuotes.get(id);
-    if (!quote) {
+    const [updated] = await db
+      .update(repairQuotes)
+      .set({ status })
+      .where(eq(repairQuotes.id, id))
+      .returning();
+    
+    if (!updated) {
       throw new Error("Quote not found");
     }
-    const updated: RepairQuote = { ...quote, status };
-    this.repairQuotes.set(id, updated);
     return updated;
   }
 
   // Admin Settings
   async saveSetting(insertSetting: InsertAdminSetting): Promise<AdminSetting> {
-    const existing = Array.from(this.adminSettings.values()).find(
-      (s) => s.key === insertSetting.key
-    );
+    const [existing] = await db
+      .select()
+      .from(adminSettings)
+      .where(eq(adminSettings.key, insertSetting.key));
 
     if (existing) {
-      const updated: AdminSetting = {
-        ...existing,
-        value: insertSetting.value,
-        updatedAt: new Date(),
-      };
-      this.adminSettings.set(existing.id, updated);
+      const [updated] = await db
+        .update(adminSettings)
+        .set({
+          value: insertSetting.value,
+          updatedAt: new Date(),
+        })
+        .where(eq(adminSettings.id, existing.id))
+        .returning();
       return updated;
     }
 
-    const id = randomUUID();
-    const setting: AdminSetting = {
-      ...insertSetting,
-      id,
-      updatedAt: new Date(),
-    };
-    this.adminSettings.set(id, setting);
-    return setting;
+    const [newSetting] = await db
+      .insert(adminSettings)
+      .values(insertSetting)
+      .returning();
+    return newSetting;
   }
 
   async getSetting(key: string): Promise<AdminSetting | undefined> {
-    return Array.from(this.adminSettings.values()).find((s) => s.key === key);
+    const [setting] = await db
+      .select()
+      .from(adminSettings)
+      .where(eq(adminSettings.key, key));
+    return setting || undefined;
   }
 
   async getAllSettings(): Promise<AdminSetting[]> {
-    return Array.from(this.adminSettings.values());
+    return await db.select().from(adminSettings);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
