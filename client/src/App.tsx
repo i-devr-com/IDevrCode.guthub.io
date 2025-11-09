@@ -9,6 +9,7 @@ import Home from "@/pages/Home";
 import About from "@/pages/About";
 import Services from "@/pages/Services";
 import AppBuilder from "@/pages/AppBuilder";
+import RepairQuiz from "@/pages/RepairQuiz";
 import Checkout from "@/pages/Checkout";
 import Success from "@/pages/Success";
 import NotFound from "@/pages/not-found";
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/about" component={About} />
       <Route path="/services" component={Services} />
       <Route path="/app-builder" component={AppBuilder} />
+      <Route path="/repair-quiz" component={RepairQuiz} />
       <Route path="/checkout/:id" component={Checkout} />
       <Route path="/success/:id" component={Success} />
       <Route component={NotFound} />

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Code2, Wrench, Send, CheckCircle2 } from "lucide-react";
+import { Code2, Wrench, Send, CheckCircle2, Sparkles, ArrowRight } from "lucide-react";
 import { insertCustomQuoteSchema, insertRepairQuoteSchema } from "@shared/schema";
 import type { InsertCustomQuote, InsertRepairQuote } from "@shared/schema";
 
@@ -266,6 +267,29 @@ export default function Services() {
 
           {/* Repairs Tab */}
           <TabsContent value="repairs">
+            <Card className="mb-6 bg-primary/5 border-primary/20">
+              <CardContent className="py-6">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="h-12 w-12 rounded-md bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg mb-1">Get Instant Repair Estimate</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Take our quick diagnostic quiz to get a rough cost estimate in under 2 minutes
+                      </p>
+                    </div>
+                  </div>
+                  <Link href="/repair-quiz">
+                    <Button size="lg" className="flex-shrink-0" data-testid="button-start-quiz">
+                      Start Quiz
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
             <div className="grid md:grid-cols-2 gap-8">
               {/* Form */}
               <Card>
